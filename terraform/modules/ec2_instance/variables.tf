@@ -3,29 +3,72 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "random_suffix" {
-  type        = string
+variable "template_configs" {
+  description = "A list of template configurations with filenames and variables"
+  type = list(object({
+    filename : string
+    template_vars : map(string)
+  }))
 }
 
-variable "key_name" {
-  type        = string
+variable "random_suffix" {
+  type = string
+}
+
+variable "ssh_key_name" {
+  type = string
 }
 
 variable "instance_type" {
-  type        = string
+  type    = string
   default = "t2.medium"
 }
 
+variable "public" {
+  type    = bool
+  default = false
+}
+
+
+variable "private_ssh_key" {
+  type      = string
+  sensitive = true
+}
+
+variable "bastion_host_ip" {
+  type    = string
+  default = ""
+}
+
+variable "allowed_plane_ips" {
+  type    = list(string)
+  default = []
+}
+
 variable "control_plane_endpoint_dns_name" {
-  type        = string
+  type    = string
+  default = null
+}
+
+variable "lb_target_group_id" {
+  type = string
+}
+
+variable "lb_target_assoc" {
+  type = list(object({
+    lb_target_group_id = string
+    port               = number
+  }))
+  default = []
 }
 
 variable "sm_token_id" {
-  type        = string
+  type = string
 }
 
-variable "allow_secretmanager" {
-  type        = string
+variable "instance_policies" {
+  type    = list(string)
+  default = []
 }
 
 variable "subnet_id" {
@@ -53,7 +96,7 @@ variable "startup_script" {
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)
-  default     = {
+  default = {
     "ManagedBy" = "Terraform"
   }
 }

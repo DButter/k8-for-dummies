@@ -1,5 +1,6 @@
 blah
 *.pub
 kubeadm_token.txt
+kubeadm_cert_key.txt
 .terraform.lock*
 .terraform/

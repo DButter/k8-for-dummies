@@ -1,15 +1,38 @@
 #!/bin/bash
+USERNAME="ec2-user"
+USER_HOME="/home/$USERNAME"
+SSH_DIR="$USER_HOME/.ssh"
+AUTHORIZED_KEYS="$SSH_DIR/authorized_keys"
 
+
+# Create .ssh directory if it doesn't exist
+mkdir -p "$SSH_DIR"
+chmod 700 "$SSH_DIR"
+chown $USERNAME:$USERNAME "$SSH_DIR"
+
+# Create authorized_keys file if it doesn't exist
+touch "$AUTHORIZED_KEYS"
+chmod 600 "$AUTHORIZED_KEYS"
+chown $USERNAME:$USERNAME "$AUTHORIZED_KEYS"
+
+echo "THIS IS FAKE NEWS ${public_key}"
+echo ${public_key} >> "$AUTHORIZED_KEYS"
+cat "$AUTHORIZED_KEYS"
+echo "------------------------------------------------------------------------------------------------------------"
+whoami
+pwd
+echo "------------------------------------------------------------------------------------------------------------"
 sudo yum -y update && sudo yum -y upgrade
-sudo yum remove awscli
+sudo yum remove awscli -y
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
-sudo ./aws/install
+sudo ./aws/install --update
 sudo yum install -y containerd
 sudo systemctl enable containerd
 sudo systemctl start containerd
 sudo yum install -y nc
-
+sudo yum install -y iproute-tc
+sudo yum install -y jq
 echo "runtime-endpoint: unix:///run/containerd/containerd.sock" | sudo tee /etc/crictl.yaml
 
 cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
@@ -33,10 +56,8 @@ sudo sysctl net.bridge.bridge-nf-call-iptables=1
 sudo sysctl net.ipv4.ip_forward=1
 echo -e "net.bridge.bridge-nf-call-ip6tables = 1\nnet.bridge.bridge-nf-call-iptables = 1\nnet.ipv4.ip_forward = 1" | sudo tee /etc/sysctl.d/k8s-bridge.conf && sudo sysctl --system
 
-# Fetch the token from AWS Secrets Manager
-export TOKEN=$(aws secretsmanager get-secret-value --secret-id ${secret_manager_id} --query SecretString --output text)
 
-kubeadm init --control-plane-endpoint=${control_plane_endpoint} --token=$TOKEN --cri-socket /run/containerd/containerd.sock
-mkdir -p $HOME/.kube
-sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+
+
+

@@ -1,10 +1,13 @@
 terraform {
   backend "s3" {
-    bucket = "terraform-state-storage123"
-    key    = "dev/terraform.tfstate"
-    region = "eu-central-1"
+    bucket  = "davids-master-state-bucket"
+    key     = "dev/terraform.tfstate"
+    region  = "eu-central-1"
+    profile = "saml"
   }
 }
 
 provider "aws" {
+  profile = "saml"
+  region  = "eu-central-1"
 }

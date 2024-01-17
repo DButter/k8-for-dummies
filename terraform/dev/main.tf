@@ -11,7 +11,8 @@ locals {
   }
   vpc_cidr_block             = "10.0.0.0/16"
   public_subnet_cidr_blocks  = ["10.0.0.0/24", "10.0.1.0/24", "10.0.2.0/24"]
-  private_subnet_cidr_blocks = ["10.0.3.0/24", "10.0.4.0/24", "10.0.5.0/24"]
+  private_subnet_cidr_blocks = ["10.0.16.0/20", "10.0.32.0/20", "10.0.48.0/20"]
+  pod_network_cidr           = "172.16.0.0/12"
   masters                    = ["master0"]
   nodes                      = ["node0", "node1", "node2"]
 }
@@ -24,6 +25,8 @@ module "base" {
   dns_zone_name              = local.dns_zone_name
   plane_record_name          = local.plane_dns_name
   random_suffix              = random_id.tag_suffix.hex
+  kubeadm_token              = data.local_file.kubeadm_token.content
+  cert_key                   = data.local_file.certificateKey.content
   tags                       = local.tags
 }
 
@@ -31,15 +34,6 @@ data "local_file" "public_key" {
   filename = "./id_ed25519.pub"
 }
 
-
-resource "tls_private_key" "deployer" {
-  algorithm = "RSA"
-  rsa_bits  = 4096
-}
-
-resource "aws_key_pair" "deployer" {
-  public_key = tls_private_key.deployer.public_key_openssh
-}
 
 data "local_file" "kubeadm_token" {
   filename = "${path.module}/kubeadm_token.txt"
@@ -49,48 +43,18 @@ data "local_file" "certificateKey" {
   filename = "${path.module}/kubeadm_cert_key.txt"
 }
 
-resource "aws_secretsmanager_secret" "kubeadm_token" {
-  name = random_id.tag_suffix.hex
-}
-
-resource "aws_secretsmanager_secret_version" "kubeadm_token" {
-  secret_id = aws_secretsmanager_secret.kubeadm_token.id
-  secret_string = jsonencode({
-    token           = data.local_file.kubeadm_token.content,
-    certificateKey  = data.local_file.certificateKey.content,
-    private_key_pem = base64encode(module.base.ca_cert.private_key_pem)
-    ca_cert_pem     = base64encode(module.base.ca_cert.cert_pem)
-  })
-
-}
-
-resource "aws_iam_policy" "read_secret" {
-  description = "Allows reading the Kubeadm Token from AWS Secrets Manager"
-
-  policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action   = "secretsmanager:GetSecretValue",
-        Effect   = "Allow",
-        Resource = aws_secretsmanager_secret.kubeadm_token.arn
-      }
-    ]
-  })
-}
-
 module "jump_host" {
   source             = "../modules/ec2_instance"
   vpc_id             = module.base.vpc_id
   random_suffix      = random_id.tag_suffix.hex
-  ssh_key_name       = aws_key_pair.deployer.key_name
+  ssh_key_name       = module.base.aws_key_pair.key_name
   lb_target_group_id = module.base.lb_target_group_id
-  sm_token_id        = aws_secretsmanager_secret.kubeadm_token.arn
+  sm_token_id        = module.base.aws_secretsmanager_secret_arn
   subnet_id          = module.base.public_subnet_ids[0]
   security_group_id  = module.base.base_security_group_id
   public             = true
-  allowed_ssh_ip     = "84.115.209.147/32"
-  private_ssh_key    = tls_private_key.deployer.private_key_pem
+  allowed_ssh_ip     = "84.115.209.122/32"
+  private_ssh_key    = module.base.tls_private_key.private_key_pem
   template_configs = [
     {
       filename = "init.sh.tpl"
@@ -109,16 +73,20 @@ module "initial_master" {
   source                          = "../modules/ec2_instance"
   vpc_id                          = module.base.vpc_id
   random_suffix                   = random_id.tag_suffix.hex
-  ssh_key_name                    = aws_key_pair.deployer.key_name
+  ssh_key_name                    = module.base.aws_key_pair.key_name
   control_plane_endpoint_dns_name = module.base.lb_dns_name
   lb_target_group_id              = module.base.lb_target_group_id
-  sm_token_id                     = aws_secretsmanager_secret.kubeadm_token.arn
+  sm_token_id                     = module.base.aws_secretsmanager_secret_arn
   subnet_id                       = module.base.private_subnet_ids[0]
-  allowed_plane_ips               = concat(local.public_subnet_cidr_blocks, local.private_subnet_cidr_blocks)
+  allowed_plane_ips               = concat(local.public_subnet_cidr_blocks, local.private_subnet_cidr_blocks, [local.pod_network_cidr])
   security_group_id               = module.base.base_security_group_id
-  instance_policies               = [aws_iam_policy.read_secret.arn]
-  allowed_ssh_ip                  = "84.115.209.147/32"
-  private_ssh_key                 = tls_private_key.deployer.private_key_openssh
+  instance_policies               = [module.base.aws_iam_policy_arn]
+  allowed_ssh_ip                  = "84.115.209.122/32"
+  private_ssh_key                 = module.base.tls_private_key.private_key_openssh
+  instance_dns_settings = {
+    zone_id   = module.base.private_dns_zone_id
+    node_name = "initial-master.k8.local"
+  }
   template_configs = [
     {
       filename = "init.sh.tpl"
@@ -129,9 +97,17 @@ module "initial_master" {
     {
       filename = "kubeadm.sh.tpl"
       template_vars = {
-        secret_manager_id = aws_secretsmanager_secret.kubeadm_token.arn
+        secret_manager_id = module.base.aws_secretsmanager_secret_arn,
+        node_name         = "initial-master.k8.local"
+        pod_network_cidr  = local.pod_network_cidr
       }
-    }
+    },
+    #{
+    #  filename = "flannel/installflannel.sh.tpl"
+    #  template_vars = {
+    #    pod_network_cidr = local.pod_network_cidr
+    #  }
+    #}
   ]
   bastion_host_ip = module.jump_host.instance_public_ip
   lb_target_assoc = [
@@ -150,21 +126,32 @@ module "masters" {
   source                          = "../modules/ec2_instance"
   vpc_id                          = module.base.vpc_id
   random_suffix                   = random_id.tag_suffix.hex
-  ssh_key_name                    = aws_key_pair.deployer.key_name
+  ssh_key_name                    = module.base.aws_key_pair.key_name
   control_plane_endpoint_dns_name = module.base.lb_dns_name
   lb_target_group_id              = module.base.lb_target_group_id
-  sm_token_id                     = aws_secretsmanager_secret.kubeadm_token.arn
+  sm_token_id                     = module.base.aws_secretsmanager_secret_arn
   subnet_id                       = module.base.private_subnet_ids[0]
   allowed_plane_ips               = concat(local.public_subnet_cidr_blocks, local.private_subnet_cidr_blocks)
   security_group_id               = module.base.base_security_group_id
-  instance_policies               = [aws_iam_policy.read_secret.arn]
-  allowed_ssh_ip                  = "84.115.209.147/32"
-  private_ssh_key                 = tls_private_key.deployer.private_key_openssh
+  instance_policies               = [module.base.aws_iam_policy_arn]
+  allowed_ssh_ip                  = "84.115.209.122/32"
+  private_ssh_key                 = module.base.tls_private_key.private_key_openssh
+  instance_dns_settings = {
+    zone_id   = module.base.private_dns_zone_id
+    node_name = "${each.key}.k8.local"
+  }
   template_configs = [
     {
       filename = "init.sh.tpl"
       template_vars = {
         public_key = replace(data.local_file.public_key.content, "\n", "")
+      }
+    },
+    {
+      filename = "joinMaster.sh.tpl"
+      template_vars = {
+        secret_manager_id = module.base.aws_secretsmanager_secret_arn,
+        node_name         = "${each.key}.k8.local"
       }
     }
   ]
@@ -185,21 +172,32 @@ module "nodes" {
   source                          = "../modules/ec2_instance"
   vpc_id                          = module.base.vpc_id
   random_suffix                   = random_id.tag_suffix.hex
-  ssh_key_name                    = aws_key_pair.deployer.key_name
+  ssh_key_name                    = module.base.aws_key_pair.key_name
   control_plane_endpoint_dns_name = module.base.lb_dns_name
   lb_target_group_id              = module.base.lb_target_group_id
-  sm_token_id                     = aws_secretsmanager_secret.kubeadm_token.arn
+  sm_token_id                     = module.base.aws_secretsmanager_secret_arn
   subnet_id                       = module.base.private_subnet_ids[0]
   allowed_plane_ips               = concat(local.public_subnet_cidr_blocks, local.private_subnet_cidr_blocks)
   security_group_id               = module.base.base_security_group_id
-  instance_policies               = [aws_iam_policy.read_secret.arn]
-  allowed_ssh_ip                  = "84.115.209.147/32"
-  private_ssh_key                 = tls_private_key.deployer.private_key_openssh
+  instance_policies               = [module.base.aws_iam_policy_arn]
+  allowed_ssh_ip                  = "84.115.209.122/32"
+  private_ssh_key                 = module.base.tls_private_key.private_key_openssh
+  instance_dns_settings = {
+    zone_id   = module.base.private_dns_zone_id
+    node_name = "${each.key}.k8.local"
+  }
   template_configs = [
     {
       filename = "init.sh.tpl"
       template_vars = {
         public_key = replace(data.local_file.public_key.content, "\n", "")
+      }
+    },
+    {
+      filename = "joinWorker.sh.tpl"
+      template_vars = {
+        secret_manager_id = module.base.aws_secretsmanager_secret_arn,
+        node_name         = "${each.key}.k8.local"
       }
     }
   ]

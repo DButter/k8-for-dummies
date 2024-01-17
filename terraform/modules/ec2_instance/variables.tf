@@ -71,6 +71,15 @@ variable "instance_policies" {
   default = []
 }
 
+variable "instance_dns_settings" {
+  description = "DNS settings for the instance"
+  type = object({
+    zone_id   = string
+    node_name = string
+  })
+  default = null # Indicates that DNS settings are not provided
+}
+
 variable "subnet_id" {
   description = "The ID of the subnet to launch the instance in."
   type        = string

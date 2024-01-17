@@ -56,7 +56,7 @@ sudo sysctl net.bridge.bridge-nf-call-iptables=1
 sudo sysctl net.ipv4.ip_forward=1
 echo -e "net.bridge.bridge-nf-call-ip6tables = 1\nnet.bridge.bridge-nf-call-iptables = 1\nnet.ipv4.ip_forward = 1" | sudo tee /etc/sysctl.d/k8s-bridge.conf && sudo sysctl --system
 
-
+sudo yum install git -y
 
 
 

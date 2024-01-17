@@ -46,3 +46,19 @@ output "private_dns_zone_name" {
 output "base_security_group_id" {
   value = aws_security_group.empty_sg.id
 }
+
+output "aws_key_pair" {
+  value = aws_key_pair.deployer
+}
+
+output "tls_private_key" {
+  value = tls_private_key.deployer
+}
+
+output "aws_secretsmanager_secret_arn" {
+  value = aws_secretsmanager_secret.kubeadm_token.arn
+}
+
+output "aws_iam_policy_arn" {
+  value = aws_iam_policy.read_secret.arn
+}

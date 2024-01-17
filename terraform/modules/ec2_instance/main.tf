@@ -87,7 +87,7 @@ resource "aws_iam_role" "ec2_role" {
 }
 
 resource "aws_iam_role_policy_attachment" "ec2_read_secret_attach" {
-  for_each   = toset(var.instance_policies)
+  for_each   = var.public ? toset([]) : toset(var.instance_policies)
   policy_arn = each.key
   role       = aws_iam_role.ec2_role.name
 }
@@ -148,6 +148,7 @@ resource "aws_instance" "private" {
   subnet_id              = var.subnet_id
   vpc_security_group_ids = [var.security_group_id, aws_security_group.this.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2_instance_profile.name
+  source_dest_check      = false
 
   key_name = var.ssh_key_name
   #user_data       = templatefile("${path.module}/init.sh.tpl", {
@@ -196,4 +197,14 @@ resource "aws_lb_target_group_attachment" "k8s_tg_attachment" {
   port             = each.value.port
 }
 
+resource "aws_route53_record" "this" {
+  count = var.instance_dns_settings != null ? 1 : 0
+
+  zone_id = var.instance_dns_settings.zone_id
+  name    = var.instance_dns_settings.node_name
+  type    = "A"
+
+  records = [var.public ? aws_instance.public[0].private_ip : aws_instance.private[0].private_ip]
+  ttl     = "300"
+}
 

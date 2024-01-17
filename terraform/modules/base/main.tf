@@ -306,3 +306,73 @@ resource "aws_route53_record" "plane_record" {
   ttl     = "300"
   records = [aws_lb.k8s_lb.dns_name]
 }
+
+resource "tls_private_key" "deployer" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "deployer" {
+  public_key = tls_private_key.deployer.public_key_openssh
+}
+
+resource "aws_secretsmanager_secret" "kubeadm_token" {
+  name = var.random_suffix
+}
+
+resource "aws_secretsmanager_secret_version" "kubeadm_token" {
+  secret_id = aws_secretsmanager_secret.kubeadm_token.id
+  secret_string = jsonencode({
+    token           = var.kubeadm_token,
+    certificateKey  = var.cert_key,
+    private_key_pem = base64encode(tls_private_key.ca_key.private_key_pem)
+    ca_cert_pem     = base64encode(tls_self_signed_cert.ca_cert.cert_pem)
+  })
+
+}
+
+resource "aws_iam_policy" "read_secret" {
+  description = "Allows reading the Kubeadm Token from AWS Secrets Manager and gives sever required permissions for https://github.com/aws/amazon-vpc-cni-k8s"
+
+  policy = data.aws_iam_policy_document.this.json
+}
+
+data "aws_iam_policy_document" "this" {
+  statement {
+    actions = [
+      "secretsmanager:GetSecretValue",
+    ]
+    effect = "Allow"
+    resources = [
+      aws_secretsmanager_secret.kubeadm_token.arn,
+    ]
+  }
+
+  statement {
+    actions = [
+      "ec2:AssignPrivateIpAddresses",
+      "ec2:AttachNetworkInterface",
+      "ec2:CreateNetworkInterface",
+      "ec2:DeleteNetworkInterface",
+      "ec2:DescribeInstances",
+      "ec2:DescribeTags",
+      "ec2:DescribeNetworkInterfaces",
+      "ec2:DescribeInstanceTypes",
+      "ec2:DetachNetworkInterface",
+      "ec2:ModifyNetworkInterfaceAttribute",
+      "ec2:UnassignPrivateIpAddresses",
+    ]
+    effect    = "Allow"
+    resources = ["*"]
+  }
+
+  statement {
+    actions = [
+      "ec2:CreateTags",
+    ]
+    effect = "Allow"
+    resources = [
+      "arn:aws:ec2:*:*:network-interface/*",
+    ]
+  }
+}

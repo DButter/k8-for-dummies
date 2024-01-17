@@ -33,6 +33,16 @@ variable "plane_record_name" {
   type        = string
 }
 
+variable "kubeadm_token" {
+  description = "kubeadm token for auto cluster join"
+  type        = string
+}
+
+variable "cert_key" {
+  description = "cert_key for cluster cert management"
+  type        = string
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

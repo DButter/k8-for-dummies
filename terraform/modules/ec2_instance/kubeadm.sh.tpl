@@ -11,7 +11,7 @@ update-ca-trust extract
 export TOKEN=$(/usr/local/bin/aws secretsmanager get-secret-value --secret-id ${secret_manager_id} --query SecretString --output text | jq -r '."token"')
 export certificateKey=$(/usr/local/bin/aws secretsmanager get-secret-value --secret-id ${secret_manager_id} --query SecretString --output text | jq -r '."certificateKey"')
 
-sudo kubeadm init --control-plane-endpoint=plane.k8.local --token=$TOKEN --cri-socket=unix:///run/containerd/containerd.sock --pod-network-cidr=172.16.0.0/12 --upload-certs --certificate-key=$certificateKey
+sudo kubeadm init --control-plane-endpoint=plane.k8.local --node-name=${node_name} --token=$TOKEN --cri-socket=unix:///run/containerd/containerd.sock --pod-network-cidr=${pod_network_cidr} --upload-certs --certificate-key=$certificateKey
 mkdir -p /home/ec2-user/.kube
 sudo cp -i /etc/kubernetes/admin.conf /home/ec2-user/.kube/config
 sudo chown ec2-user:ec2-user /home/ec2-user/.kube/config

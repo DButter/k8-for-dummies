@@ -89,19 +89,27 @@ module "initial_master" {
   }
   template_configs = [
     {
-      filename = "init.sh.tpl"
+      filename = "./cilium/init.sh.tpl"
       template_vars = {
         public_key = replace(data.local_file.public_key.content, "\n", "")
       }
     },
-    {
-      filename = "kubeadm.sh.tpl"
-      template_vars = {
-        secret_manager_id = module.base.aws_secretsmanager_secret_arn,
-        node_name         = "initial-master.k8.local"
-        pod_network_cidr  = local.pod_network_cidr
-      }
-    },
+    #{
+    #  filename = "./cilium/kubeadm.sh.tpl"
+    #  template_vars = {
+    #    secret_manager_id = module.base.aws_secretsmanager_secret_arn,
+    #    node_name         = "initial-master.k8.local"
+    #    pod_network_cidr  = local.pod_network_cidr
+    #  }
+    #},
+    #{
+    #  filename = "./cilium/installcilium.sh.tpl"
+    #  template_vars = {
+    #    secret_manager_id = module.base.aws_secretsmanager_secret_arn,
+    #    node_name         = "initial-master.k8.local"
+    #    pod_network_cidr  = local.pod_network_cidr
+    #  }
+    #},
     #{
     #  filename = "flannel/installflannel.sh.tpl"
     #  template_vars = {
@@ -142,13 +150,13 @@ module "masters" {
   }
   template_configs = [
     {
-      filename = "init.sh.tpl"
+      filename = "./cilium/init.sh.tpl"
       template_vars = {
         public_key = replace(data.local_file.public_key.content, "\n", "")
       }
     },
     {
-      filename = "joinMaster.sh.tpl"
+      filename = "./cilium/joinMaster.sh.tpl"
       template_vars = {
         secret_manager_id = module.base.aws_secretsmanager_secret_arn,
         node_name         = "${each.key}.k8.local"
@@ -188,13 +196,13 @@ module "nodes" {
   }
   template_configs = [
     {
-      filename = "init.sh.tpl"
+      filename = "./cilium/init.sh.tpl"
       template_vars = {
         public_key = replace(data.local_file.public_key.content, "\n", "")
       }
     },
     {
-      filename = "joinWorker.sh.tpl"
+      filename = "./cilium/joinWorker.sh.tpl"
       template_vars = {
         secret_manager_id = module.base.aws_secretsmanager_secret_arn,
         node_name         = "${each.key}.k8.local"

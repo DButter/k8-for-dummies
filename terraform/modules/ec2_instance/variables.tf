@@ -7,8 +7,18 @@ variable "template_configs" {
   description = "A list of template configurations with filenames and variables"
   type = list(object({
     filename : string
-    template_vars : map(string)
+    template_vars : optional(map(string))
   }))
+  default = []
+}
+
+variable "rendered_configs" {
+  description = "A list of template configurations with filenames and variables"
+  type = list(object({
+    filename : string
+    template_vars : optional(map(string))
+  }))
+  default = []
 }
 
 variable "random_suffix" {

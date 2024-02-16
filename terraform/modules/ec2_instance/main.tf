@@ -97,10 +97,15 @@ resource "aws_iam_instance_profile" "ec2_instance_profile" {
 }
 
 locals {
-  templated_files_content = [for config in var.template_configs : templatefile("${path.module}/${config.filename}", config.template_vars)]
+  templated_files_content = [for config in var.template_configs :
+  templatefile("${path.module}/${config.filename}", config.template_vars != null ? config.template_vars : {})]
 
   # Join all templated content into a single string, maintaining order
   merged_content = join("\n", local.templated_files_content)
+
+  rendered_files_content = [for config in var.rendered_configs :
+  templatefile("${path.module}/${config.filename}", config.template_vars != null ? config.template_vars : {})]
+  merged_rendered_content = join("\n", local.rendered_files_content)
 }
 
 resource "aws_instance" "public" {
@@ -131,6 +136,11 @@ resource "aws_instance" "public" {
   provisioner "file" {
     content     = local.merged_content
     destination = "/tmp/init.sh"
+  }
+
+  provisioner "file" {
+    content     = local.merged_rendered_content
+    destination = "/home/ec2-user/rendered.sh"
   }
 
   provisioner "remote-exec" {
@@ -179,6 +189,11 @@ resource "null_resource" "instance_setup" {
   provisioner "file" {
     content     = local.merged_content
     destination = "/tmp/init.sh"
+  }
+
+  provisioner "file" {
+    content     = local.merged_rendered_content
+    destination = "/home/ec2-user/rendered.sh"
   }
 
   provisioner "remote-exec" {

@@ -15,6 +15,8 @@ locals {
   pod_network_cidr           = "172.16.0.0/12"
   masters                    = ["master0"]
   nodes                      = ["node0", "node1", "node2"]
+  cilium_version             = "v0.15.21"
+  kubernetes_version         = "v1.28.7"
 }
 
 module "base" {
@@ -94,28 +96,26 @@ module "initial_master" {
         public_key = replace(data.local_file.public_key.content, "\n", "")
       }
     },
-    #{
-    #  filename = "./cilium/kubeadm.sh.tpl"
-    #  template_vars = {
-    #    secret_manager_id = module.base.aws_secretsmanager_secret_arn,
-    #    node_name         = "initial-master.k8.local"
-    #    pod_network_cidr  = local.pod_network_cidr
-    #  }
-    #},
-    #{
-    #  filename = "./cilium/installcilium.sh.tpl"
-    #  template_vars = {
-    #    secret_manager_id = module.base.aws_secretsmanager_secret_arn,
-    #    node_name         = "initial-master.k8.local"
-    #    pod_network_cidr  = local.pod_network_cidr
-    #  }
-    #},
-    #{
-    #  filename = "flannel/installflannel.sh.tpl"
-    #  template_vars = {
-    #    pod_network_cidr = local.pod_network_cidr
-    #  }
-    #}
+    {
+      filename = "./cilium/updateKernel.sh.tpl"
+    }
+  ]
+  rendered_configs = [
+    {
+      filename = "./cilium/kubeadm.sh.tpl"
+      template_vars = {
+        secret_manager_id  = module.base.aws_secretsmanager_secret_arn,
+        node_name          = "initial-master.k8.local"
+        pod_network_cidr   = local.pod_network_cidr
+        kubernetes_version = local.kubernetes_version
+      }
+    },
+    {
+      filename = "./cilium/installcilium.sh.tpl"
+      template_vars = {
+        cilium_version = local.cilium_version
+      }
+    },
   ]
   bastion_host_ip = module.jump_host.instance_public_ip
   lb_target_assoc = [
@@ -161,6 +161,9 @@ module "masters" {
         secret_manager_id = module.base.aws_secretsmanager_secret_arn,
         node_name         = "${each.key}.k8.local"
       }
+    },
+    {
+      filename = "./cilium/updateKernel.sh.tpl"
     }
   ]
   bastion_host_ip = module.jump_host.instance_public_ip
@@ -207,6 +210,9 @@ module "nodes" {
         secret_manager_id = module.base.aws_secretsmanager_secret_arn,
         node_name         = "${each.key}.k8.local"
       }
+    },
+    {
+      filename = "./cilium/updateKernel.sh.tpl"
     }
   ]
   bastion_host_ip = module.jump_host.instance_public_ip

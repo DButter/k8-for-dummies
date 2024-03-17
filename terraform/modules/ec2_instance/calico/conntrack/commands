@@ -1,0 +1,94 @@
+# install wrk2
+
+sudo yum -y groupinstall 'Development Tools'
+sudo yum -y install openssl-devel git
+git clone https://github.com/giltene/wrk2.git
+cd wrk2
+make
+sudo cp wrk /usr/local/bin/wrk
+
+
+
+# 400 connections
+wrk -t12 -c400 -d30s -R2000 http://10.0.18.65:80/
+
+# intially no issues sudo conntrack -L shows 438 flow entries
+
+Running 30s test @ http://10.0.18.65:80/
+  12 threads and 400 connections
+  Thread calibration: mean lat.: 29.758ms, rate sampling interval: 144ms
+  Thread calibration: mean lat.: 14.550ms, rate sampling interval: 57ms
+  Thread calibration: mean lat.: 52.764ms, rate sampling interval: 187ms
+  Thread calibration: mean lat.: 42.148ms, rate sampling interval: 155ms
+  Thread calibration: mean lat.: 51.691ms, rate sampling interval: 187ms
+  Thread calibration: mean lat.: 29.768ms, rate sampling interval: 142ms
+  Thread calibration: mean lat.: 64.612ms, rate sampling interval: 203ms
+  Thread calibration: mean lat.: 30.598ms, rate sampling interval: 147ms
+  Thread calibration: mean lat.: 67.436ms, rate sampling interval: 195ms
+  Thread calibration: mean lat.: 55.020ms, rate sampling interval: 185ms
+  Thread calibration: mean lat.: 30.289ms, rate sampling interval: 145ms
+  Thread calibration: mean lat.: 30.368ms, rate sampling interval: 143ms
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    49.29ms   31.86ms 147.33ms   61.52%
+    Req/Sec   166.73    117.67   589.00     77.34%
+  58802 requests in 30.12s, 696.04MB read
+Requests/sec:   1952.11
+Transfer/sec:     23.11MB
+
+
+
+# set conntrack max connections to 400
+sudo sysctl -w net.netfilter.nf_conntrack_max=400
+
+# conntrack failues begin to show
+
+Running 30s test @ http://10.0.18.65:80/
+  12 threads and 400 connections
+  Thread calibration: mean lat.: 2467.266ms, rate sampling interval: 7819ms
+  Thread calibration: mean lat.: 2461.831ms, rate sampling interval: 7778ms
+  Thread calibration: mean lat.: 2685.414ms, rate sampling interval: 7696ms
+  Thread calibration: mean lat.: 2470.319ms, rate sampling interval: 7802ms
+  Thread calibration: mean lat.: 2474.459ms, rate sampling interval: 7811ms
+  Thread calibration: mean lat.: 2466.298ms, rate sampling interval: 7806ms
+  Thread calibration: mean lat.: 2726.597ms, rate sampling interval: 7761ms
+  Thread calibration: mean lat.: 2471.770ms, rate sampling interval: 7811ms
+  Thread calibration: mean lat.: 2752.427ms, rate sampling interval: 7823ms
+  Thread calibration: mean lat.: 2467.272ms, rate sampling interval: 7794ms
+  Thread calibration: mean lat.: 2761.334ms, rate sampling interval: 7872ms
+  Thread calibration: mean lat.: 2476.419ms, rate sampling interval: 7827ms
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     8.05s     2.50s   21.54s    60.26%
+    Req/Sec    90.71     25.46   105.00     91.67%
+  31679 requests in 30.12s, 376.25MB read
+  Socket errors: connect 0, read 0, write 0, timeout 528
+Requests/sec:   1051.83
+Transfer/sec:     12.49MB
+
+# after bypassing contrack, lower performance but no saturation, as expected
+
+[ec2-user@ip-10-0-0-86 wrk2]$ wrk -t12 -c400 -d30s -R2000 http://10.0.18.65:80/
+Running 30s test @ http://10.0.18.65:80/
+  12 threads and 400 connections
+  Thread calibration: mean lat.: 633.920ms, rate sampling interval: 1876ms
+  Thread calibration: mean lat.: 635.034ms, rate sampling interval: 1880ms
+  Thread calibration: mean lat.: 635.678ms, rate sampling interval: 1883ms
+  Thread calibration: mean lat.: 634.986ms, rate sampling interval: 1864ms
+  Thread calibration: mean lat.: 635.158ms, rate sampling interval: 1880ms
+  Thread calibration: mean lat.: 667.011ms, rate sampling interval: 1825ms
+  Thread calibration: mean lat.: 695.061ms, rate sampling interval: 1872ms
+  Thread calibration: mean lat.: 751.104ms, rate sampling interval: 1997ms
+  Thread calibration: mean lat.: 740.153ms, rate sampling interval: 1981ms
+  Thread calibration: mean lat.: 736.617ms, rate sampling interval: 1974ms
+  Thread calibration: mean lat.: 711.518ms, rate sampling interval: 1912ms
+  Thread calibration: mean lat.: 636.744ms, rate sampling interval: 1873ms
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     4.63s     2.27s    8.79s    59.87%
+    Req/Sec   101.66     12.80   134.00     72.27%
+  41523 requests in 30.16s, 493.33MB read
+Requests/sec:   1376.61
+Transfer/sec:     16.36MB
+
+
+
+# reset conntrack max connections 
+sudo sysctl -w net.netfilter.nf_conntrack_max=131072

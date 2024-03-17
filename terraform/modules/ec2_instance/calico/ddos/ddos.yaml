@@ -1,0 +1,53 @@
+apiVersion: projectcalico.org/v3
+kind: HostEndpoint
+metadata:
+  name: node0-k8-local-eth0
+  labels:
+    apply-dos-mitigation: 'true'
+spec:
+  interfaceName: eth0
+  node: node0.k8.local
+  expectedIPs:
+    - 10.0.18.65
+---
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkSet
+metadata:
+  name: dos-mitigation
+  labels:
+    dos-deny-list: 'true'
+spec:
+  nets:
+    - '1.2.3.4/32'
+    - '5.6.0.0/16'
+---
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: dos-mitigation
+spec:
+  selector: apply-dos-mitigation == 'true'
+  doNotTrack: true
+  applyOnForward: true
+  types:
+    - Ingress
+  ingress:
+    - action: Deny
+      source:
+        selector: dos-deny-list == 'true'
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: memcached-server-sim
+  labels:
+    memcached: server
+spec:
+  hostNetwork: true
+  containers:
+  - name: hello-world
+    image: nginxdemos/hello
+    ports:
+    - containerPort: 80
+  nodeName: node0.k8.local
+

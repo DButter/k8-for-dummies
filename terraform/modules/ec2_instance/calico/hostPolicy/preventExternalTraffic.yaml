@@ -1,0 +1,25 @@
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: allow-cluster-internal-ingress
+spec:
+  order: 10
+  preDNAT: true
+  applyOnForward: true
+  ingress:
+    - action: Allow
+      source:
+        nets: [10.0.0.0/24, 10.0.1.0/24, 10.0.2.0/24, 10.0.16.0/20, 10.0.32.0/20, 10.0.48.0/20, 172.16.0.0/12]
+  selector: has(host-endpoint)
+---
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: drop-other-ingress
+spec:
+  order: 20
+  preDNAT: true
+  applyOnForward: true
+  ingress:
+    - action: Deny
+  selector: has(host-endpoint)

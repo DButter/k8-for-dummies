@@ -1,0 +1,9 @@
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: allow-outbound
+spec:
+  selector: all()
+  order: 200
+  egress:
+    - action: Allow

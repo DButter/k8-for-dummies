@@ -1,0 +1,49 @@
+apiVersion: projectcalico.org/v3
+kind: HostEndpoint
+metadata:
+  name: initial-master-hostendpoint
+  labels:
+    host-endpoint: "true"
+spec:
+  node: initial-master.k8.local
+  interfaceName: eth0
+---
+apiVersion: projectcalico.org/v3
+kind: HostEndpoint
+metadata:
+  name: master0-hostendpoint
+  labels:
+    host-endpoint: "true"
+spec:
+  node: master0.k8.local
+  interfaceName: eth0
+---
+apiVersion: projectcalico.org/v3
+kind: HostEndpoint
+metadata:
+  name: node0-hostendpoint
+  labels:
+    host-endpoint: "true"
+spec:
+  node: node0.k8.local
+  interfaceName: eth0
+---
+apiVersion: projectcalico.org/v3
+kind: HostEndpoint
+metadata:
+  name: node1-hostendpoint
+  labels:
+    host-endpoint: "true"
+spec:
+  node: node1.k8.local
+  interfaceName: eth0
+---
+apiVersion: projectcalico.org/v3
+kind: HostEndpoint
+metadata:
+  name: node2-hostendpoint
+  labels:
+    host-endpoint: "true"
+spec:
+  node: node2.k8.local
+  interfaceName: eth0

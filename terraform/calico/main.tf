@@ -15,7 +15,7 @@ locals {
   pod_network_cidr           = "172.16.0.0/12"
   masters                    = ["master0", "master1"]
   nodes                      = ["node0", "node1", "node2"]
-  my_ip                      = "84.115.209.122/32"
+  my_ip                      = "84.115.212.30/32"
   calico_version             = "v3.27.2"
   kubernetes_version         = "v1.28.7"
 }

@@ -1,0 +1,14 @@
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: restrict-deathstar-access
+  namespace: empire
+spec:
+  selector: app.kubernetes.io/name == 'deathstar'
+  order: 500
+  ingress:
+    - action: Allow
+      source:
+        namespaceSelector: projectcalico.org/name == 'empire'
+  egress:
+    - action: Allow

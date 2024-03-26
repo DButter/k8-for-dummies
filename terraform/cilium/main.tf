@@ -13,7 +13,8 @@ locals {
   public_subnet_cidr_blocks  = ["10.0.0.0/24", "10.0.1.0/24", "10.0.2.0/24"]
   private_subnet_cidr_blocks = ["10.0.16.0/20", "10.0.32.0/20", "10.0.48.0/20"]
   pod_network_cidr           = "172.16.0.0/12"
-  masters                    = ["master0"]
+  my_ip                      = "84.115.212.30/32"
+  masters                    = ["master0", "master1"]
   nodes                      = ["node0", "node1", "node2"]
   cilium_version             = "v0.15.21"
   kubernetes_version         = "v1.28.7"
@@ -55,7 +56,7 @@ module "jump_host" {
   subnet_id          = module.base.public_subnet_ids[0]
   security_group_id  = module.base.base_security_group_id
   public             = true
-  allowed_ssh_ip     = "84.115.209.122/32"
+  allowed_ssh_ip     = local.my_ip
   private_ssh_key    = module.base.tls_private_key.private_key_pem
   template_configs = [
     {
@@ -83,7 +84,7 @@ module "initial_master" {
   allowed_plane_ips               = concat(local.public_subnet_cidr_blocks, local.private_subnet_cidr_blocks, [local.pod_network_cidr])
   security_group_id               = module.base.base_security_group_id
   instance_policies               = [module.base.aws_iam_policy_arn]
-  allowed_ssh_ip                  = "84.115.209.122/32"
+  allowed_ssh_ip                  = local.my_ip
   private_ssh_key                 = module.base.tls_private_key.private_key_openssh
   instance_dns_settings = {
     zone_id   = module.base.private_dns_zone_id
@@ -97,11 +98,6 @@ module "initial_master" {
       }
     },
     {
-      filename = "./cilium/updateKernel.sh.tpl"
-    }
-  ]
-  rendered_configs = [
-    {
       filename = "./cilium/kubeadm.sh.tpl"
       template_vars = {
         secret_manager_id  = module.base.aws_secretsmanager_secret_arn,
@@ -110,6 +106,11 @@ module "initial_master" {
         kubernetes_version = local.kubernetes_version
       }
     },
+    {
+      filename = "./cilium/updateKernel.sh.tpl"
+    }
+  ]
+  rendered_configs = [
     {
       filename = "./cilium/installcilium.sh.tpl"
       template_vars = {
@@ -142,7 +143,7 @@ module "masters" {
   allowed_plane_ips               = concat(local.public_subnet_cidr_blocks, local.private_subnet_cidr_blocks)
   security_group_id               = module.base.base_security_group_id
   instance_policies               = [module.base.aws_iam_policy_arn]
-  allowed_ssh_ip                  = "84.115.209.122/32"
+  allowed_ssh_ip                  = local.my_ip
   private_ssh_key                 = module.base.tls_private_key.private_key_openssh
   instance_dns_settings = {
     zone_id   = module.base.private_dns_zone_id
@@ -191,7 +192,7 @@ module "nodes" {
   allowed_plane_ips               = concat(local.public_subnet_cidr_blocks, local.private_subnet_cidr_blocks)
   security_group_id               = module.base.base_security_group_id
   instance_policies               = [module.base.aws_iam_policy_arn]
-  allowed_ssh_ip                  = "84.115.209.122/32"
+  allowed_ssh_ip                  = local.my_ip
   private_ssh_key                 = module.base.tls_private_key.private_key_openssh
   instance_dns_settings = {
     zone_id   = module.base.private_dns_zone_id

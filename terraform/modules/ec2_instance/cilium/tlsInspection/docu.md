@@ -67,4 +67,4 @@ Connected Nodes: 6/6
 [ec2-user@ip-10-0-20-14 ~]$ hubble observe -f -t l7 -o compact
 Mar 22 15:26:02.080: default/mediabot:40094 (ID:11871) -> artii.herokuapp.com:443 (ID:16777220) http-request FORWARDED (HTTP/1.1 GET https://artii.herokuapp.com/fonts_list)
 Mar 22 15:26:02.111: default/mediabot:40094 (ID:11871) <- artii.herokuapp.com:443 (ID:16777220) http-response FORWARDED (HTTP/1.1 404 124ms (GET https://artii.herokuapp.com/fonts_list))
-```
+```https://docs.cilium.io/en/stable/security/tls-visibility/

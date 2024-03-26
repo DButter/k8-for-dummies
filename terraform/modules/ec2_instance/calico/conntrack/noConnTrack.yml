@@ -42,3 +42,46 @@ spec:
     - containerPort: 80
   nodeName: node0.k8.local
 
+apiVersion: projectcalico.org/v3
+kind: HostEndpoint
+metadata:
+  name: node0-k8-local-eth0
+  labels:
+    memcached: server
+spec:
+  interfaceName: eth0
+  node: node0.k8.local
+  expectedIPs:
+    - 10.0.18.65
+---
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: access-nginx-on-host-network
+spec:
+  selector: memcached == 'server'
+  applyOnForward: true
+  ingress:
+    - action: Allow
+      protocol: TCP
+      destination:
+        ports:
+          - 80
+  egress:
+    - action: Allow
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: memcached-server-sim
+  labels:
+    memcached: server
+spec:
+  hostNetwork: true
+  containers:
+  - name: hello-world
+    image: nginxdemos/hello
+    ports:
+    - containerPort: 80
+  nodeName: node0.k8.local
+

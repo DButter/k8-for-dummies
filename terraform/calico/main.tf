@@ -13,7 +13,7 @@ locals {
   public_subnet_cidr_blocks  = ["10.0.0.0/24", "10.0.1.0/24", "10.0.2.0/24"]
   private_subnet_cidr_blocks = ["10.0.16.0/20", "10.0.32.0/20", "10.0.48.0/20"]
   pod_network_cidr           = "172.16.0.0/12"
-  masters                    = ["master0", "master1"]
+  masters                    = ["master0", "master1", "master1"]
   nodes                      = ["node0", "node1", "node2"]
   my_ip                      = "84.115.212.30/32"
   calico_version             = "v3.27.2"

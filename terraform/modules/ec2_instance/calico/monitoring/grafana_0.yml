@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-dashboard-svc
+  namespace: calico-monitoring
+spec:
+  selector:
+    app:  prometheus-pod
+    role: monitoring
+  ports:
+  - port: 9090
+    targetPort: 9090
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-config
+  namespace: calico-monitoring
+data:
+  prometheus.yaml: |-
+    {
+        "apiVersion": 1,
+        "datasources": [
+            {
+               "access":"proxy",
+                "editable": true,
+                "name": "calico-demo-prometheus",
+                "orgId": 1,
+                "type": "prometheus",
+                "url": "http://prometheus-dashboard-svc.calico-monitoring.svc:9090",
+                "version": 1
+            }
+        ]
+    }
+

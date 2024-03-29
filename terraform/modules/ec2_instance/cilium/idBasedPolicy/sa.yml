@@ -1,0 +1,18 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: restrict-deathstar-to-sa
+  namespace: empire
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: 'deathstar'
+  ingress:
+    - fromEntities:
+        - all
+      fromServiceAccounts:
+        matchLabels:
+          io.kubernetes.pod.namespace: empire
+          io.kubernetes.serviceaccount.name: tie-fighter-sa
+  egress:
+    - {}

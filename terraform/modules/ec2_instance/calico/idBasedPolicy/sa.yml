@@ -1,0 +1,16 @@
+apiVersion: projectcalico.org/v3
+kind: NetworkPolicy
+metadata:
+  name: restrict-deathstar-to-sa
+  namespace: empire
+spec:
+  selector: app.kubernetes.io/name == 'deathstar'
+  order: 500
+  ingress:
+    - action: Allow
+      source:
+        selector: all()  # This would usually target a specific selector, but is demonstrated as allowing all for context
+        serviceAccounts:
+          names: ["tie-fighter-sa"]
+  egress:
+    - action: Allow

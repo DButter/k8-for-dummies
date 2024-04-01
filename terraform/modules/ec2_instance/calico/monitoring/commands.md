@@ -1,3 +1,7 @@
+https://docs.tigera.io/calico/latest/operations/monitor/monitor-component-metrics
+https://docs.tigera.io/calico/latest/operations/monitor/monitor-component-visual
+https://docs.tigera.io/calico/latest/reference/felix/prometheus
+
 # activate metrics
 
 kubectl patch felixconfiguration default --type merge --patch '{"spec":{"prometheusMetricsEnabled": true}}'

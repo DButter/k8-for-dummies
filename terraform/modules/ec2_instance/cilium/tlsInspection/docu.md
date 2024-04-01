@@ -21,13 +21,13 @@ distinguished_name  = req_distinguished_name
 req_extensions      = req_ext
 
 [ req_distinguished_name ]
-CN = artii.herokuapp.com
+CN = google.com
 
 [ req_ext ]
 subjectAltName = @alt_names
 
 [ alt_names ]
-DNS.1 = artii.herokuapp.com
+DNS.1 = google.com
 
 ```
 
@@ -52,7 +52,7 @@ kubectl create secret generic tls-orig-data -n kube-system --from-file=/etc/kube
 kubectl cp default/mediabot:/etc/ssl/certs/ca-certificates.crt ca-certificates.crt
 kubectl create secret generic tls-orig-data -n kube-system --from-file=ca.crt=./ca-certificates.crt
 
-kubectl create -f ../kubernetes-tls-inspection/l7-visibility-tls.yaml
+kubectl create -f l7-visibility-tls.yaml
 
 # observe
 
@@ -65,6 +65,6 @@ Current/Max Flows: 24,570/24,570 (100.00%)
 Flows/s: 37.26
 Connected Nodes: 6/6
 [ec2-user@ip-10-0-20-14 ~]$ hubble observe -f -t l7 -o compact
-Mar 22 15:26:02.080: default/mediabot:40094 (ID:11871) -> artii.herokuapp.com:443 (ID:16777220) http-request FORWARDED (HTTP/1.1 GET https://artii.herokuapp.com/fonts_list)
-Mar 22 15:26:02.111: default/mediabot:40094 (ID:11871) <- artii.herokuapp.com:443 (ID:16777220) http-response FORWARDED (HTTP/1.1 404 124ms (GET https://artii.herokuapp.com/fonts_list))
+Mar 22 15:26:02.080: default/mediabot:40094 (ID:11871) -> google.com:443 (ID:16777220) http-request FORWARDED (HTTP/1.1 GET https://google.com/fonts_list)
+Mar 22 15:26:02.111: default/mediabot:40094 (ID:11871) <- google.com:443 (ID:16777220) http-response FORWARDED (HTTP/1.1 200 105ms (GET https://google.com/fonts_list))
 ```https://docs.cilium.io/en/stable/security/tls-visibility/

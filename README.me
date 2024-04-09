@@ -1,1 +1,13 @@
-ssh -L 1234:10.101.17.187:5000 -J ec2-user@18.197.128.74 ec2-user@10.0.3.128 -N
+# Prerequisites
+
+* AWS Account
+
+* Admin Account: Create an IAM user with administrative access. 
+
+* AWS CLI: Install and configure the AWS CLI on your local machine. Follow the official AWS CLI user guide for installation and configuration instructions.
+
+* Terraform: Ensure Terraform is installed on your machine. Download and install Terraform from the official website.
+
+* S3 Bucket for State Management: Create an S3 bucket in your AWS account to store Terraform's state file. This bucket should be private and have versioning enabled for state file backup and history.
+
+https://registry.terraform.io/providers/hashicorp/aws/latest/docs
